@@ -693,7 +693,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      best_customers: {
+        Args: { _limit?: number }
+        Returns: {
+          email: string
+          full_name: string
+          id: string
+          orders: number
+          spend: number
+        }[]
+      }
       bootstrap_super_admin: { Args: never; Returns: boolean }
+      dashboard_metrics: { Args: never; Returns: Json }
+      driver_performance: {
+        Args: { _limit?: number }
+        Returns: {
+          deliveries: number
+          earnings: number
+          full_name: string
+          id: string
+          rating: number
+          status: Database["public"]["Enums"]["driver_status"]
+        }[]
+      }
       has_permission: {
         Args: { _code: string; _user_id: string }
         Returns: boolean
@@ -706,6 +728,33 @@ export type Database = {
         Returns: boolean
       }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
+      revenue_trend: {
+        Args: { _days?: number }
+        Returns: {
+          day: string
+          orders: number
+          revenue: number
+        }[]
+      }
+      top_menu_items: {
+        Args: { _limit?: number }
+        Returns: {
+          name: string
+          revenue: number
+          units: number
+        }[]
+      }
+      top_restaurants: {
+        Args: { _limit?: number }
+        Returns: {
+          cuisine: string
+          id: string
+          name: string
+          orders: number
+          rating: number
+          revenue: number
+        }[]
+      }
     }
     Enums: {
       app_role:
