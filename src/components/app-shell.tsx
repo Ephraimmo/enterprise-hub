@@ -38,7 +38,7 @@ export function AppShell({
   actions,
   children,
 }: {
-  session?: StaffSession;
+  session?: StaffSession | undefined;
   breadcrumb: string[];
   title: string;
   description?: string;
