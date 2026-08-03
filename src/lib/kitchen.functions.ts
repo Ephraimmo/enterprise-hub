@@ -68,7 +68,7 @@ export const advanceOrder = createServerFn({ method: "POST" })
     };
     const { error } = await db.rpc("advance_order_status", {
       _order_id: data.orderId,
-      _next_status: data.nextStatus,
+      _next: data.nextStatus,
     });
     if (error) throw new Error(error.message);
     return { ok: true };
