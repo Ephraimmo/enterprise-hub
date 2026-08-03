@@ -116,6 +116,75 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_zones: {
+        Row: {
+          base_fee: number
+          branch_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          is_deleted: boolean
+          min_order: number
+          name: string
+          postal_codes: string[]
+          radius_km: number
+          restaurant_id: string
+          surcharge: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          base_fee?: number
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_deleted?: boolean
+          min_order?: number
+          name: string
+          postal_codes?: string[]
+          radius_km?: number
+          restaurant_id: string
+          surcharge?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          base_fee?: number
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_deleted?: boolean
+          min_order?: number
+          name?: string
+          postal_codes?: string[]
+          radius_km?: number
+          restaurant_id?: string
+          surcharge?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_zones_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_zones_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       drivers: {
         Row: {
           city: string
@@ -191,10 +260,161 @@ export type Database = {
         }
         Relationships: []
       }
+      menu_categories: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          is_available: boolean
+          is_deleted: boolean
+          name: string
+          restaurant_id: string
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_available?: boolean
+          is_deleted?: boolean
+          name: string
+          restaurant_id: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_available?: boolean
+          is_deleted?: boolean
+          name?: string
+          restaurant_id?: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_categories_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_item_addons: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          is_available: boolean
+          is_deleted: boolean
+          max_quantity: number
+          menu_item_id: string
+          name: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_available?: boolean
+          is_deleted?: boolean
+          max_quantity?: number
+          menu_item_id: string
+          name: string
+          price?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_available?: boolean
+          is_deleted?: boolean
+          max_quantity?: number
+          menu_item_id?: string
+          name?: string
+          price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_item_addons_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      menu_item_variants: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          is_available: boolean
+          is_default: boolean
+          is_deleted: boolean
+          menu_item_id: string
+          name: string
+          price_delta: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_available?: boolean
+          is_default?: boolean
+          is_deleted?: boolean
+          menu_item_id: string
+          name: string
+          price_delta?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_available?: boolean
+          is_default?: boolean
+          is_deleted?: boolean
+          menu_item_id?: string
+          name?: string
+          price_delta?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_item_variants_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_items: {
         Row: {
           allergens: string[]
           category: string
+          category_id: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -215,6 +435,7 @@ export type Database = {
         Insert: {
           allergens?: string[]
           category: string
+          category_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -235,6 +456,7 @@ export type Database = {
         Update: {
           allergens?: string[]
           category?: string
+          category_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -253,6 +475,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "menu_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "menu_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "menu_items_restaurant_id_fkey"
             columns: ["restaurant_id"]
@@ -518,6 +747,168 @@ export type Database = {
         }
         Relationships: []
       }
+      restaurant_branches: {
+        Row: {
+          address: string | null
+          city: string
+          code: string | null
+          created_at: string
+          created_by: string | null
+          delivery_radius_km: number
+          id: string
+          is_active: boolean
+          is_deleted: boolean
+          latitude: number | null
+          longitude: number | null
+          name: string
+          phone: string | null
+          restaurant_id: string
+          status: Database["public"]["Enums"]["restaurant_status"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string
+          code?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery_radius_km?: number
+          id?: string
+          is_active?: boolean
+          is_deleted?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          phone?: string | null
+          restaurant_id: string
+          status?: Database["public"]["Enums"]["restaurant_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string
+          code?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery_radius_km?: number
+          id?: string
+          is_active?: boolean
+          is_deleted?: boolean
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          phone?: string | null
+          restaurant_id?: string
+          status?: Database["public"]["Enums"]["restaurant_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_branches_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_hours: {
+        Row: {
+          closes_at: string
+          created_at: string
+          day_of_week: number
+          id: string
+          is_active: boolean
+          is_closed: boolean
+          is_deleted: boolean
+          opens_at: string
+          restaurant_id: string
+          updated_at: string
+        }
+        Insert: {
+          closes_at?: string
+          created_at?: string
+          day_of_week: number
+          id?: string
+          is_active?: boolean
+          is_closed?: boolean
+          is_deleted?: boolean
+          opens_at?: string
+          restaurant_id: string
+          updated_at?: string
+        }
+        Update: {
+          closes_at?: string
+          created_at?: string
+          day_of_week?: number
+          id?: string
+          is_active?: boolean
+          is_closed?: boolean
+          is_deleted?: boolean
+          opens_at?: string
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_hours_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_staff: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          is_deleted: boolean
+          restaurant_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_deleted?: boolean
+          restaurant_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_deleted?: boolean
+          restaurant_id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_staff_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurants: {
         Row: {
           address: string | null
@@ -652,6 +1043,68 @@ export type Database = {
           },
         ]
       }
+      staff_invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          is_active: boolean
+          is_deleted: boolean
+          message: string | null
+          restaurant_id: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          status: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          is_active?: boolean
+          is_deleted?: boolean
+          message?: string | null
+          restaurant_id?: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          status?: string
+          token?: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          is_active?: boolean
+          is_deleted?: boolean
+          message?: string | null
+          restaurant_id?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_invitations_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -693,6 +1146,45 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      advance_order_status: {
+        Args: {
+          _next: Database["public"]["Enums"]["order_status"]
+          _order_id: string
+        }
+        Returns: {
+          cancelled_at: string | null
+          commission: number
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          delivered_at: string | null
+          delivery_address: string | null
+          delivery_fee: number
+          discount: number
+          driver_id: string | null
+          eta_minutes: number | null
+          id: string
+          is_active: boolean
+          is_deleted: boolean
+          order_number: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          placed_at: string
+          restaurant_id: string
+          special_instructions: string | null
+          status: Database["public"]["Enums"]["order_status"]
+          subtotal: number
+          tax: number
+          total: number
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "orders"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       best_customers: {
         Args: { _limit?: number }
         Returns: {
@@ -728,6 +1220,10 @@ export type Database = {
         Returns: boolean
       }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
+      manages_restaurant: {
+        Args: { _restaurant_id: string; _user_id: string }
+        Returns: boolean
+      }
       revenue_trend: {
         Args: { _days?: number }
         Returns: {
@@ -754,6 +1250,10 @@ export type Database = {
           rating: number
           revenue: number
         }[]
+      }
+      works_at_restaurant: {
+        Args: { _restaurant_id: string; _user_id: string }
+        Returns: boolean
       }
     }
     Enums: {

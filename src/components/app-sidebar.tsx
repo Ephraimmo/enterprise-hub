@@ -40,6 +40,7 @@ const groups: { label: string; items: NavItem[] }[] = [
     items: [
       { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, permission: "dashboard.view" },
       { title: "Orders", url: "/orders", icon: ReceiptText, permission: "orders.view", soon: true },
+      { title: "Kitchen queue", url: "/kitchen", icon: UtensilsCrossed, permission: "orders.view" },
       { title: "Dispatch", url: "/dispatch", icon: Radar, permission: "dispatch.view", soon: true },
       { title: "Drivers", url: "/drivers", icon: Bike, permission: "drivers.view", soon: true },
     ],
@@ -47,8 +48,8 @@ const groups: { label: string; items: NavItem[] }[] = [
   {
     label: "Catalogue",
     items: [
-      { title: "Restaurants", url: "/restaurants", icon: Store, permission: "restaurants.view", soon: true },
-      { title: "Menus", url: "/menus", icon: UtensilsCrossed, permission: "menus.view", soon: true },
+      { title: "Restaurants", url: "/restaurants", icon: Store, permission: "restaurants.view" },
+      { title: "Menus", url: "/menus", icon: UtensilsCrossed, permission: "menus.view" },
       { title: "Inventory", url: "/inventory", icon: Boxes, permission: "inventory.view", soon: true },
     ],
   },
