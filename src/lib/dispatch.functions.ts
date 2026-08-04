@@ -40,8 +40,8 @@ export interface DispatchAuditEntry {
   entity_id: string | null;
   created_at: string;
   actor_email: string | null;
-  before_value: Record<string, unknown> | null;
-  after_value: Record<string, unknown> | null;
+  before_value: { status?: string; driver_id?: string | null } | null;
+  after_value: { status?: string; driver_id?: string | null; eta_minutes?: number | null } | null;
 }
 
 export interface DispatchBoard {
