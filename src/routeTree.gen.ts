@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAccessRouteImport } from './routes/_authenticated/access'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedDispatchRouteImport } from './routes/_authenticated/dispatch'
 import { Route as AuthenticatedKitchenRouteImport } from './routes/_authenticated/kitchen'
 import { Route as AuthenticatedMenusRouteImport } from './routes/_authenticated/menus'
 import { Route as AuthenticatedRestaurantsIndexRouteImport } from './routes/_authenticated/restaurants/index'
@@ -41,6 +42,11 @@ const AuthenticatedAccessRoute = AuthenticatedAccessRouteImport.update({
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDispatchRoute = AuthenticatedDispatchRouteImport.update({
+  id: '/dispatch',
+  path: '/dispatch',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedKitchenRoute = AuthenticatedKitchenRouteImport.update({
@@ -71,6 +77,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/access': typeof AuthenticatedAccessRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/dispatch': typeof AuthenticatedDispatchRoute
   '/kitchen': typeof AuthenticatedKitchenRoute
   '/menus': typeof AuthenticatedMenusRoute
   '/restaurants/$id': typeof AuthenticatedRestaurantsIdRoute
@@ -81,6 +88,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/access': typeof AuthenticatedAccessRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/dispatch': typeof AuthenticatedDispatchRoute
   '/kitchen': typeof AuthenticatedKitchenRoute
   '/menus': typeof AuthenticatedMenusRoute
   '/restaurants/$id': typeof AuthenticatedRestaurantsIdRoute
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/access': typeof AuthenticatedAccessRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/dispatch': typeof AuthenticatedDispatchRoute
   '/_authenticated/kitchen': typeof AuthenticatedKitchenRoute
   '/_authenticated/menus': typeof AuthenticatedMenusRoute
   '/_authenticated/restaurants/$id': typeof AuthenticatedRestaurantsIdRoute
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/access'
     | '/dashboard'
+    | '/dispatch'
     | '/kitchen'
     | '/menus'
     | '/restaurants/$id'
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/access'
     | '/dashboard'
+    | '/dispatch'
     | '/kitchen'
     | '/menus'
     | '/restaurants/$id'
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/access'
     | '/_authenticated/dashboard'
+    | '/_authenticated/dispatch'
     | '/_authenticated/kitchen'
     | '/_authenticated/menus'
     | '/_authenticated/restaurants/$id'
@@ -175,6 +187,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/dispatch': {
+      id: '/_authenticated/dispatch'
+      path: '/dispatch'
+      fullPath: '/dispatch'
+      preLoaderRoute: typeof AuthenticatedDispatchRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/kitchen': {
       id: '/_authenticated/kitchen'
       path: '/kitchen'
@@ -209,6 +228,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccessRoute: typeof AuthenticatedAccessRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDispatchRoute: typeof AuthenticatedDispatchRoute
   AuthenticatedKitchenRoute: typeof AuthenticatedKitchenRoute
   AuthenticatedMenusRoute: typeof AuthenticatedMenusRoute
   AuthenticatedRestaurantsIdRoute: typeof AuthenticatedRestaurantsIdRoute
@@ -218,6 +238,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccessRoute: AuthenticatedAccessRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDispatchRoute: AuthenticatedDispatchRoute,
   AuthenticatedKitchenRoute: AuthenticatedKitchenRoute,
   AuthenticatedMenusRoute: AuthenticatedMenusRoute,
   AuthenticatedRestaurantsIdRoute: AuthenticatedRestaurantsIdRoute,

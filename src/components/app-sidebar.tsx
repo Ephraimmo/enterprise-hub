@@ -41,7 +41,7 @@ const groups: { label: string; items: NavItem[] }[] = [
       { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, permission: "dashboard.view" },
       { title: "Orders", url: "/orders", icon: ReceiptText, permission: "orders.view", soon: true },
       { title: "Kitchen queue", url: "/kitchen", icon: UtensilsCrossed, permission: "orders.view" },
-      { title: "Dispatch", url: "/dispatch", icon: Radar, permission: "dispatch.view", soon: true },
+      { title: "Dispatch", url: "/dispatch", icon: Radar, permission: "dispatch.view" },
       { title: "Drivers", url: "/drivers", icon: Bike, permission: "drivers.view", soon: true },
     ],
   },
