@@ -1146,11 +1146,87 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      advance_delivery_status: {
+        Args: {
+          _eta_minutes?: number
+          _next: Database["public"]["Enums"]["order_status"]
+          _order_id: string
+        }
+        Returns: {
+          cancelled_at: string | null
+          commission: number
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          delivered_at: string | null
+          delivery_address: string | null
+          delivery_fee: number
+          discount: number
+          driver_id: string | null
+          eta_minutes: number | null
+          id: string
+          is_active: boolean
+          is_deleted: boolean
+          order_number: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          placed_at: string
+          restaurant_id: string
+          special_instructions: string | null
+          status: Database["public"]["Enums"]["order_status"]
+          subtotal: number
+          tax: number
+          total: number
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "orders"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       advance_order_status: {
         Args: {
           _next: Database["public"]["Enums"]["order_status"]
           _order_id: string
         }
+        Returns: {
+          cancelled_at: string | null
+          commission: number
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          delivered_at: string | null
+          delivery_address: string | null
+          delivery_fee: number
+          discount: number
+          driver_id: string | null
+          eta_minutes: number | null
+          id: string
+          is_active: boolean
+          is_deleted: boolean
+          order_number: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          placed_at: string
+          restaurant_id: string
+          special_instructions: string | null
+          status: Database["public"]["Enums"]["order_status"]
+          subtotal: number
+          tax: number
+          total: number
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "orders"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      assign_order_driver: {
+        Args: { _driver_id: string; _eta_minutes?: number; _order_id: string }
         Returns: {
           cancelled_at: string | null
           commission: number
@@ -1250,6 +1326,42 @@ export type Database = {
           rating: number
           revenue: number
         }[]
+      }
+      unassign_order_driver: {
+        Args: { _order_id: string }
+        Returns: {
+          cancelled_at: string | null
+          commission: number
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          delivered_at: string | null
+          delivery_address: string | null
+          delivery_fee: number
+          discount: number
+          driver_id: string | null
+          eta_minutes: number | null
+          id: string
+          is_active: boolean
+          is_deleted: boolean
+          order_number: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          placed_at: string
+          restaurant_id: string
+          special_instructions: string | null
+          status: Database["public"]["Enums"]["order_status"]
+          subtotal: number
+          tax: number
+          total: number
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "orders"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       works_at_restaurant: {
         Args: { _restaurant_id: string; _user_id: string }
