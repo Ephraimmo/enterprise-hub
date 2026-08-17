@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
+import { useServerFn } from "@/lib/use-demo-fn";
 import { toast } from "sonner";
 import { Mail, ShieldCheck, X } from "lucide-react";
 
@@ -60,7 +60,7 @@ function AccessPage() {
   const fail = (error: Error) => toast.error(error.message);
 
   const inviteMutation = useMutation({
-    mutationFn: (payload: Parameters<typeof inviteStaff>[0]["data"]) => invite({ data: payload }),
+    mutationFn: (_payload: Parameters<typeof invite>[0]) => invite(_payload),
     onSuccess: () => {
       toast.success("Invitation created — the role applies on first sign-in");
       void invalidate();
@@ -68,7 +68,7 @@ function AccessPage() {
     onError: fail,
   });
   const revokeMutation = useMutation({
-    mutationFn: (payload: { id: string }) => revoke({ data: payload }),
+    mutationFn: (payload: { id: string }) => revoke(payload),
     onSuccess: () => {
       toast.success("Invitation revoked");
       void invalidate();
@@ -76,7 +76,7 @@ function AccessPage() {
     onError: fail,
   });
   const roleMutation = useMutation({
-    mutationFn: (payload: { userId: string; role: StaffRole; grant: boolean }) => setRole({ data: payload }),
+    mutationFn: (payload: { userId: string; role: StaffRole; grant: boolean }) => setRole(payload),
     onSuccess: () => {
       toast.success("Roles updated");
       void invalidate();

@@ -1308,6 +1308,42 @@ export type Database = {
           revenue: number
         }[]
       }
+      set_driver_status: {
+        Args: {
+          _driver_id: string
+          _next: Database["public"]["Enums"]["driver_status"]
+        }
+        Returns: {
+          city: string
+          created_at: string
+          created_by: string | null
+          current_latitude: number | null
+          current_longitude: number | null
+          email: string
+          full_name: string
+          id: string
+          is_active: boolean
+          is_deleted: boolean
+          is_verified: boolean
+          license_number: string | null
+          phone: string | null
+          rating: number
+          status: Database["public"]["Enums"]["driver_status"]
+          total_deliveries: number
+          updated_at: string
+          updated_by: string | null
+          user_id: string | null
+          vehicle_plate: string | null
+          vehicle_type: string
+          wallet_balance: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "drivers"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       top_menu_items: {
         Args: { _limit?: number }
         Returns: {
@@ -1326,42 +1362,6 @@ export type Database = {
           rating: number
           revenue: number
         }[]
-      }
-      unassign_order_driver: {
-        Args: { _order_id: string }
-        Returns: {
-          cancelled_at: string | null
-          commission: number
-          created_at: string
-          created_by: string | null
-          customer_id: string
-          delivered_at: string | null
-          delivery_address: string | null
-          delivery_fee: number
-          discount: number
-          driver_id: string | null
-          eta_minutes: number | null
-          id: string
-          is_active: boolean
-          is_deleted: boolean
-          order_number: string
-          payment_method: Database["public"]["Enums"]["payment_method"]
-          placed_at: string
-          restaurant_id: string
-          special_instructions: string | null
-          status: Database["public"]["Enums"]["order_status"]
-          subtotal: number
-          tax: number
-          total: number
-          updated_at: string
-          updated_by: string | null
-        }
-        SetofOptions: {
-          from: "*"
-          to: "orders"
-          isOneToOne: true
-          isSetofReturn: false
-        }
       }
       works_at_restaurant: {
         Args: { _restaurant_id: string; _user_id: string }

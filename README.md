@@ -1134,3 +1134,7 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+## Documentation
+
+- [`docs/CUSTOMER_APP_PROMOTIONS_INTEGRATION.md`](docs/CUSTOMER_APP_PROMOTIONS_INTEGRATION.md) — **handoff spec for the customer app**: every Firebase path, data contract, and the exact checkout algorithms (coupons, combo deals incl. 3-for-2 multi-buy, and the per-restaurant Points & Rewards programme). Give this to the customer-app developer or AI agent.

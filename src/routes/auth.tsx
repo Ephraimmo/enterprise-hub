@@ -1,15 +1,27 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Loader2, ShieldCheck, UtensilsCrossed } from "lucide-react";
+import { Loader2, ShieldCheck, UtensilsCrossed, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  DEMO_CREDENTIALS,
+  signInDemoWithCredentials,
+  signInDemoAs,
+  type DemoCredential,
+} from "@/lib/session.functions";
+import { profiles } from "@/lib/demo-store";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -21,7 +33,10 @@ export const Route = createFileRoute("/auth")({
           "Secure sign-in for ForkFleet staff: administrators, dispatchers, restaurant managers, finance and support teams.",
       },
       { property: "og:title", content: "Staff Sign In | ForkFleet Operations Console" },
-      { property: "og:description", content: "Secure role-based access to the ForkFleet delivery management portal." },
+      {
+        property: "og:description",
+        content: "Secure role-based access to the ForkFleet delivery management portal.",
+      },
     ],
   }),
   component: AuthPage,
@@ -29,43 +44,21 @@ export const Route = createFileRoute("/auth")({
 
 const credentials = z.object({
   email: z.string().trim().email({ message: "Enter a valid work email" }).max(255),
-  password: z.string().min(8, { message: "Password must be at least 8 characters" }).max(72),
-});
-
-const signUpSchema = credentials.extend({
-  fullName: z.string().trim().min(2, { message: "Enter your full name" }).max(100),
+  password: z.string().min(6, { message: "Password must be at least 6 characters" }).max(72),
 });
 
 function AuthPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const quickAccounts = useMemo<DemoCredential[]>(() => DEMO_CREDENTIALS, []);
 
   async function handleSignIn(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const parsed = credentials.safeParse({ email: form.get("email"), password: form.get("password") });
-    if (!parsed.success) {
-      setErrors(Object.fromEntries(parsed.error.issues.map((i) => [String(i.path[0]), i.message])));
-      return;
-    }
-    setErrors({});
-    setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword(parsed.data);
-    setBusy(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    toast.success("Welcome back");
-    navigate({ to: "/dashboard", replace: true });
-  }
-
-  async function handleSignUp(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const parsed = signUpSchema.safeParse({
-      fullName: form.get("fullName"),
+    const parsed = credentials.safeParse({
       email: form.get("email"),
       password: form.get("password"),
     });
@@ -75,42 +68,27 @@ function AuthPage() {
     }
     setErrors({});
     setBusy(true);
-    const { data, error } = await supabase.auth.signUp({
-      email: parsed.data.email,
-      password: parsed.data.password,
-      options: {
-        emailRedirectTo: window.location.origin,
-        data: { full_name: parsed.data.fullName },
-      },
-    });
+    const result = await signInDemoWithCredentials(parsed.data);
     setBusy(false);
-    if (error) {
-      toast.error(error.message);
+    if (!result.ok) {
+      toast.error("Invalid demo credentials. Try one of the quick accounts below.");
+      setErrors({ email: "No demo staff member matches those credentials." });
       return;
     }
-    if (data.session) {
-      navigate({ to: "/dashboard", replace: true });
-      return;
-    }
-    toast.success("Check your email to confirm your account before signing in.");
+    queryClient.invalidateQueries({ queryKey: ["staff-session"] });
+    toast.success(`Welcome back, ${result.session?.fullName ?? "staff member"}`);
+    navigate({ to: "/dashboard", replace: true });
   }
 
-  async function handleGoogle() {
+  async function quickSignIn(cred: DemoCredential) {
     setBusy(true);
-    try {
-      const { lovable } = await import("@/integrations/lovable/index");
-      const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-      if (result.error) {
-        toast.error("Google sign-in failed. Try email instead.");
-        setBusy(false);
-        return;
-      }
-      if (result.redirected) return;
-      navigate({ to: "/dashboard", replace: true });
-    } catch {
-      toast.error("Google sign-in is unavailable right now.");
-    }
+    const profile = profiles.find((p) => p.email === cred.email);
+    if (profile) signInDemoAs(profile.user_id);
+    queryClient.invalidateQueries({ queryKey: ["staff-session"] });
+    await new Promise((r) => setTimeout(r, 150));
     setBusy(false);
+    toast.success(`Signed in as ${cred.label} (${cred.rolePreview})`);
+    navigate({ to: "/dashboard", replace: true });
   }
 
   return (
@@ -128,103 +106,88 @@ function AuthPage() {
             The control room behind every delivery on your network.
           </h2>
           <p className="text-sm text-muted-foreground">
-            Restaurants, kitchens, dispatch, fleet, finance and support — one operations console, fifteen
-            permission-scoped roles, a full audit trail on every action.
+            Restaurants, kitchens, dispatch, fleet, finance and support — one operations console,
+            fifteen permission-scoped roles, a full audit trail on every action.
           </p>
           <div className="flex items-center gap-2 rounded-md border border-border bg-card/60 p-3 text-xs text-muted-foreground">
             <ShieldCheck className="size-4 text-primary" />
-            Role-based access control with per-permission gating on every module.
+            Demo mode — sign in uses static staff accounts only. No Supabase calls are made.
           </div>
         </div>
-        <p className="relative text-xs text-muted-foreground">Enterprise food ordering &amp; delivery management</p>
+        <p className="relative text-xs text-muted-foreground">
+          Enterprise food ordering &amp; delivery management
+        </p>
       </div>
 
       <div className="flex items-center justify-center p-6">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="text-xl">Staff access</CardTitle>
-            <CardDescription>Sign in to the operations console.</CardDescription>
+            <CardDescription>
+              Sign in with a demo account. Password for every account is <code className="rounded bg-muted px-1 py-0.5 text-[11px]">demo12345</code>.
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="signin">
-              <TabsList className="mb-4 w-full">
-                <TabsTrigger value="signin" className="flex-1">
-                  Sign in
-                </TabsTrigger>
-                <TabsTrigger value="signup" className="flex-1">
-                  Create account
-                </TabsTrigger>
-              </TabsList>
+          <CardContent className="space-y-5">
+            <form onSubmit={handleSignIn} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="signin-email">Work email</Label>
+                <Input
+                  id="signin-email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  defaultValue="avery.cole@forkfleet.demo"
+                  required
+                />
+                {errors["email"] && <p className="text-xs text-destructive">{errors["email"]}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="signin-password">Password</Label>
+                <Input
+                  id="signin-password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  defaultValue="demo12345"
+                  required
+                />
+                {errors["password"] && <p className="text-xs text-destructive">{errors["password"]}</p>}
+              </div>
+              <Button type="submit" className="w-full" disabled={busy}>
+                {busy && <Loader2 className="mr-2 size-4 animate-spin" />}
+                Sign in
+              </Button>
+            </form>
 
-              <TabsContent value="signin">
-                <form onSubmit={handleSignIn} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="signin-email">Work email</Label>
-                    <Input id="signin-email" name="email" type="email" autoComplete="email" required />
-                    {errors["email"] && <p className="text-xs text-destructive">{errors["email"]}</p>}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="signin-password">Password</Label>
-                    <Input
-                      id="signin-password"
-                      name="password"
-                      type="password"
-                      autoComplete="current-password"
-                      required
-                    />
-                    {errors["password"] && <p className="text-xs text-destructive">{errors["password"]}</p>}
-                  </div>
-                  <Button type="submit" className="w-full" disabled={busy}>
-                    {busy && <Loader2 className="mr-2 size-4 animate-spin" />}
-                    Sign in
-                  </Button>
-                </form>
-              </TabsContent>
-
-              <TabsContent value="signup">
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="signup-name">Full name</Label>
-                    <Input id="signup-name" name="fullName" autoComplete="name" required />
-                    {errors["fullName"] && <p className="text-xs text-destructive">{errors["fullName"]}</p>}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="signup-email">Work email</Label>
-                    <Input id="signup-email" name="email" type="email" autoComplete="email" required />
-                    {errors["email"] && <p className="text-xs text-destructive">{errors["email"]}</p>}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="signup-password">Password</Label>
-                    <Input
-                      id="signup-password"
-                      name="password"
-                      type="password"
-                      autoComplete="new-password"
-                      required
-                    />
-                    {errors["password"] && <p className="text-xs text-destructive">{errors["password"]}</p>}
-                  </div>
-                  <Button type="submit" className="w-full" disabled={busy}>
-                    {busy && <Loader2 className="mr-2 size-4 animate-spin" />}
-                    Create staff account
-                  </Button>
-                  <p className="text-xs text-muted-foreground">
-                    The first account created becomes the platform Super Admin. Later accounts start with no role
-                    until an administrator assigns one.
-                  </p>
-                </form>
-              </TabsContent>
-            </Tabs>
-
-            <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <span className="h-px flex-1 bg-border" />
-              or
+              Demo accounts
               <span className="h-px flex-1 bg-border" />
             </div>
 
-            <Button variant="outline" className="w-full" onClick={() => void handleGoogle()} disabled={busy}>
-              Continue with Google
-            </Button>
+            <div className="grid gap-2">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Users className="size-3.5" />
+                Pick a role to explore a permission-scoped view.
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {quickAccounts.map((acc) => (
+                  <Button
+                    key={acc.email}
+                    type="button"
+                    variant="outline"
+                    className="h-auto justify-start px-3 py-2 text-left"
+                    disabled={busy}
+                    onClick={() => void quickSignIn(acc)}
+                  >
+                    <span className="flex flex-col">
+                      <span className="text-sm font-medium">{acc.label}</span>
+                      <span className="text-[11px] text-muted-foreground">{acc.rolePreview}</span>
+                    </span>
+                  </Button>
+                ))}
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -1,12 +1,14 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { supabase } from "@/integrations/supabase/client";
+import { isDemoSignedIn } from "@/lib/session.functions";
+
+async function ensureDemoSignedIn() {
+  // SSR guard: there is no localStorage on the server, let the client do the redirect.
+  if (typeof window === "undefined") return;
+  if (!isDemoSignedIn()) throw redirect({ to: "/auth" });
+}
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
-  beforeLoad: async () => {
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/auth" });
-    return { user: data.user };
-  },
+  beforeLoad: ensureDemoSignedIn,
   component: () => <Outlet />,
 });

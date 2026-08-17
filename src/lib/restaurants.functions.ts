@@ -1,7 +1,19 @@
-import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { audit } from "@/lib/audit";
+import {
+  branches,
+  businessHours,
+  delay,
+  orders,
+  profiles,
+  restaurantStaff,
+  restaurants,
+  slugify,
+  uid,
+  zones,
+  type RestaurantStatusValue,
+} from "@/lib/demo-store";
 
-export type RestaurantStatus = "pending" | "approved" | "suspended" | "rejected";
+export type RestaurantStatus = RestaurantStatusValue;
 
 export interface RestaurantRow {
   id: string;
@@ -73,235 +85,237 @@ export interface RestaurantDetail {
   stats: { orders: number; revenue: number; menuItems: number };
 }
 
-export const listRestaurants = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: { search?: string; status?: string } | undefined) => input ?? {})
-  .handler(async ({ data, context }): Promise<RestaurantRow[]> => {
-    const db = context.supabase as never as { from: (t: string) => any };
-    let query = db.from("restaurants").select("*").order("created_at", { ascending: false }).limit(300);
-    if (data.search) query = query.ilike("name", `%${data.search}%`);
-    if (data.status && data.status !== "all") query = query.eq("status", data.status);
-    const { data: rows, error } = await query;
-    if (error) throw new Error(error.message);
-    return rows ?? [];
-  });
+export async function listRestaurants(
+  input?: { search?: string; status?: string },
+): Promise<RestaurantRow[]> {
+  await delay(70);
+  const search = input?.search?.trim().toLowerCase();
+  const status = input?.status;
+  return restaurants
+    .filter((r) => (!search || r.name.toLowerCase().includes(search) || r.cuisine.toLowerCase().includes(search)))
+    .filter((r) => (!status || status === "all" || r.status === status))
+    .slice()
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+    .slice(0, 300);
+}
 
-export const getRestaurant = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: { id: string }) => input)
-  .handler(async ({ data, context }): Promise<RestaurantDetail> => {
-    const db = context.supabase as never as { from: (t: string) => any };
-    const [restRes, branchRes, zoneRes, hourRes, staffRes, itemRes, orderRes] = await Promise.all([
-      db.from("restaurants").select("*").eq("id", data.id).maybeSingle(),
-      db.from("restaurant_branches").select("*").eq("restaurant_id", data.id).order("name"),
-      db.from("delivery_zones").select("*").eq("restaurant_id", data.id).order("name"),
-      db.from("restaurant_hours").select("*").eq("restaurant_id", data.id).order("day_of_week"),
-      db.from("restaurant_staff").select("id, user_id, role, is_active").eq("restaurant_id", data.id),
-      db.from("menu_items").select("id", { count: "exact", head: true }).eq("restaurant_id", data.id),
-      db.from("orders").select("total, status").eq("restaurant_id", data.id).limit(2000),
-    ]);
-    if (!restRes.data) throw new Error("Restaurant not found");
+export async function getRestaurant(input: { id: string }): Promise<RestaurantDetail> {
+  await delay(90);
+  const restaurant = restaurants.find((r) => r.id === input.id);
+  if (!restaurant) throw new Error("Restaurant not found");
+  const restBranches = branches.filter((b) => b.restaurant_id === input.id);
+  const restZones = zones.filter((z) => z.restaurant_id === input.id);
+  const restHours = businessHours.filter((h) => h.restaurant_id === input.id).sort((a, b) => a.day_of_week - b.day_of_week);
+  const staffLinks = restaurantStaff.filter((rs) => rs.restaurant_id === input.id && rs.is_active);
+  const profileMap = new Map(profiles.map((p) => [p.user_id, p]));
+  const restOrders = orders.filter((o) => o.restaurant_id === input.id);
 
-    const staffRows = staffRes.data ?? [];
-    let profiles: Record<string, { email: string; full_name: string | null }> = {};
-    if (staffRows.length > 0) {
-      const { data: profileRows } = await db
-        .from("profiles")
-        .select("user_id, email, full_name")
-        .in("user_id", staffRows.map((s: { user_id: string }) => s.user_id));
-      profiles = Object.fromEntries((profileRows ?? []).map((p: any) => [p.user_id, p]));
-    }
+  return {
+    restaurant,
+    branches: restBranches,
+    zones: restZones,
+    hours: restHours,
+    staff: staffLinks.map((s) => {
+      const p = profileMap.get(s.user_id);
+      return {
+        id: s.id,
+        user_id: s.user_id,
+        role: s.role,
+        is_active: s.is_active,
+        email: p?.email ?? null,
+        full_name: p?.full_name ?? null,
+      };
+    }),
+    stats: {
+      orders: restOrders.length,
+      revenue: restOrders.filter((o) => o.status === "delivered").reduce((sum, o) => sum + Number(o.total ?? 0), 0),
+      menuItems: 0,
+    },
+  };
+}
 
-    const orders = (orderRes.data ?? []) as { total: number; status: string }[];
-    return {
-      restaurant: restRes.data,
-      branches: branchRes.data ?? [],
-      zones: zoneRes.data ?? [],
-      hours: hourRes.data ?? [],
-      staff: staffRows.map((s: any) => ({
-        ...s,
-        email: profiles[s.user_id]?.email ?? null,
-        full_name: profiles[s.user_id]?.full_name ?? null,
-      })),
-      stats: {
-        orders: orders.length,
-        revenue: orders.filter((o) => o.status === "delivered").reduce((sum, o) => sum + Number(o.total ?? 0), 0),
-        menuItems: itemRes.count ?? 0,
-      },
-    };
-  });
+export async function saveRestaurant(input: {
+  id?: string;
+  name: string;
+  cuisine: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  city: string;
+  commission_rate: number;
+  delivery_radius_km: number;
+  prep_time_minutes: number;
+  opens_at: string;
+  closes_at: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  status?: RestaurantStatus;
+}) {
+  await delay(80);
+  if (input.id) {
+    const existing = restaurants.find((r) => r.id === input.id);
+    if (!existing) throw new Error("Restaurant not found");
+    Object.assign(existing, {
+      name: input.name,
+      slug: slugify(input.name),
+      cuisine: input.cuisine,
+      email: input.email ?? existing.email,
+      phone: input.phone ?? existing.phone,
+      address: input.address ?? existing.address,
+      city: input.city,
+      commission_rate: input.commission_rate,
+      delivery_radius_km: input.delivery_radius_km,
+      prep_time_minutes: input.prep_time_minutes,
+      opens_at: input.opens_at,
+      closes_at: input.closes_at,
+      latitude: input.latitude !== undefined ? (input.latitude ?? null) : existing.latitude,
+      longitude: input.longitude !== undefined ? (input.longitude ?? null) : existing.longitude,
+      status: input.status ?? existing.status,
+    });
+    audit({
+      action: "restaurant.updated",
+      entityType: "restaurant",
+      entityId: existing.id,
+      after: { name: input.name, status: existing.status },
+    });
+    return { id: existing.id };
+  }
 
-export const saveRestaurant = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator(
-    (input: {
-      id?: string;
-      name: string;
-      cuisine: string;
-      email?: string;
-      phone?: string;
-      address?: string;
-      city: string;
-      commission_rate: number;
-      delivery_radius_km: number;
-      prep_time_minutes: number;
-      opens_at: string;
-      closes_at: string;
-      status?: RestaurantStatus;
-    }) => input,
-  )
-  .handler(async ({ data, context }) => {
-    const db = context.supabase as never as { from: (t: string) => any };
-    const payload = {
-      name: data.name,
-      slug: data.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, ""),
-      cuisine: data.cuisine,
-      email: data.email ?? null,
-      phone: data.phone ?? null,
-      address: data.address ?? null,
-      city: data.city,
-      commission_rate: data.commission_rate,
-      delivery_radius_km: data.delivery_radius_km,
-      prep_time_minutes: data.prep_time_minutes,
-      opens_at: data.opens_at,
-      closes_at: data.closes_at,
-      updated_by: context.userId,
-    };
-
-    if (data.id) {
-      const { error } = await db.from("restaurants").update(payload).eq("id", data.id);
-      if (error) throw new Error(error.message);
-      await db.from("audit_logs").insert({
-        actor_id: context.userId,
-        actor_email: (context.claims["email"] as string | undefined) ?? null,
-        action: "restaurant.updated",
-        entity_type: "restaurant",
-        entity_id: data.id,
-        after_value: payload,
-      });
-      return { id: data.id };
-    }
-
-    const { data: created, error } = await db
-      .from("restaurants")
-      .insert({ ...payload, status: data.status ?? "pending", created_by: context.userId })
-      .select("id")
-      .single();
-    if (error) throw new Error(error.message);
-
-    const days = [0, 1, 2, 3, 4, 5, 6].map((day_of_week) => ({
-      restaurant_id: created.id,
-      day_of_week,
-      opens_at: data.opens_at,
-      closes_at: data.closes_at,
+  const id = uid("rst");
+  const now = new Date().toISOString();
+  const created = {
+    id,
+    name: input.name,
+    slug: slugify(input.name),
+    cuisine: input.cuisine,
+    email: input.email ?? null,
+    phone: input.phone ?? null,
+    address: input.address ?? null,
+    city: input.city,
+    country: "ZA",
+    currency: "ZAR",
+    status: (input.status ?? "pending") as RestaurantStatus,
+    commission_rate: input.commission_rate,
+    delivery_radius_km: input.delivery_radius_km,
+    rating: 0,
+    rating_count: 0,
+    prep_time_minutes: input.prep_time_minutes,
+    opens_at: input.opens_at,
+    closes_at: input.closes_at,
+    latitude: input.latitude ?? null,
+    longitude: input.longitude ?? null,
+    created_at: now,
+  };
+  restaurants.push(created);
+  for (let d = 0; d < 7; d++) {
+    businessHours.push({
+      id: `hr-${id}-${d}`,
+      restaurant_id: id,
+      day_of_week: d,
+      opens_at: input.opens_at,
+      closes_at: input.closes_at,
       is_closed: false,
-    }));
-    await db.from("restaurant_hours").insert(days);
-    await db.from("audit_logs").insert({
-      actor_id: context.userId,
-      actor_email: (context.claims["email"] as string | undefined) ?? null,
-      action: "restaurant.registered",
-      entity_type: "restaurant",
-      entity_id: created.id,
-      after_value: payload,
     });
-    return { id: created.id as string };
+  }
+  audit({
+    action: "restaurant.registered",
+    entityType: "restaurant",
+    entityId: id,
+    after: { name: input.name },
   });
+  return { id };
+}
 
-export const setRestaurantStatus = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: { id: string; status: RestaurantStatus; reason?: string }) => input)
-  .handler(async ({ data, context }) => {
-    const db = context.supabase as never as { from: (t: string) => any };
-    const { error } = await db
-      .from("restaurants")
-      .update({ status: data.status, updated_by: context.userId })
-      .eq("id", data.id);
-    if (error) throw new Error(error.message);
-    await db.from("audit_logs").insert({
-      actor_id: context.userId,
-      actor_email: (context.claims["email"] as string | undefined) ?? null,
-      action: `restaurant.${data.status}`,
-      entity_type: "restaurant",
-      entity_id: data.id,
-      after_value: { status: data.status, reason: data.reason ?? null },
+export async function setRestaurantStatus(input: { id: string; status: RestaurantStatus; reason?: string }) {
+  await delay(50);
+  const r = restaurants.find((x) => x.id === input.id);
+  if (!r) throw new Error("Restaurant not found");
+  r.status = input.status;
+  audit({
+    action: `restaurant.${input.status}`,
+    entityType: "restaurant",
+    entityId: input.id,
+    after: { status: input.status, reason: input.reason ?? null },
+  });
+  return { ok: true };
+}
+
+export async function saveBusinessHours(input: { restaurantId: string; hours: HourRow[] }) {
+  await delay(60);
+  for (let i = businessHours.length - 1; i >= 0; i--) {
+    if (businessHours[i]!.restaurant_id === input.restaurantId) businessHours.splice(i, 1);
+  }
+  for (const h of input.hours) {
+    businessHours.push({
+      id: uid("hr"),
+      restaurant_id: input.restaurantId,
+      day_of_week: h.day_of_week,
+      opens_at: h.opens_at,
+      closes_at: h.closes_at,
+      is_closed: h.is_closed,
     });
-    return { ok: true };
-  });
+  }
+  return { ok: true };
+}
 
-export const saveBusinessHours = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: { restaurantId: string; hours: HourRow[] }) => input)
-  .handler(async ({ data, context }) => {
-    const db = context.supabase as never as { from: (t: string) => any };
-    await db.from("restaurant_hours").delete().eq("restaurant_id", data.restaurantId);
-    const { error } = await db.from("restaurant_hours").insert(
-      data.hours.map((h) => ({
-        restaurant_id: data.restaurantId,
-        day_of_week: h.day_of_week,
-        opens_at: h.opens_at,
-        closes_at: h.closes_at,
-        is_closed: h.is_closed,
-      })),
-    );
-    if (error) throw new Error(error.message);
-    await db.from("audit_logs").insert({
-      actor_id: context.userId,
-      action: "restaurant.hours.updated",
-      entity_type: "restaurant",
-      entity_id: data.restaurantId,
-      after_value: { hours: data.hours },
+export async function saveBranch(input: Partial<BranchRow> & { restaurant_id: string; name: string }) {
+  await delay(60);
+  if (input.id) {
+    const b = branches.find((x) => x.id === input.id);
+    if (!b) throw new Error("Branch not found");
+    Object.assign(b, input);
+  } else {
+    branches.push({
+      id: uid("brn"),
+      restaurant_id: input.restaurant_id,
+      name: input.name,
+      code: input.code ?? null,
+      address: input.address ?? null,
+      city: input.city ?? "Johannesburg",
+      phone: input.phone ?? null,
+      latitude: input.latitude ?? null,
+      longitude: input.longitude ?? null,
+      delivery_radius_km: input.delivery_radius_km ?? 6,
+      status: (input.status ?? "approved") as RestaurantStatus,
+      is_active: input.is_active ?? true,
     });
-    return { ok: true };
-  });
+  }
+  return { ok: true };
+}
 
-export const saveBranch = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: Partial<BranchRow> & { restaurant_id: string; name: string }) => input)
-  .handler(async ({ data, context }) => {
-    const db = context.supabase as never as { from: (t: string) => any };
-    const { id, ...rest } = data;
-    const query = id
-      ? db.from("restaurant_branches").update({ ...rest, updated_by: context.userId }).eq("id", id)
-      : db.from("restaurant_branches").insert({ ...rest, created_by: context.userId });
-    const { error } = await query;
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
+export async function deleteBranch(input: { id: string }) {
+  await delay(40);
+  const idx = branches.findIndex((b) => b.id === input.id);
+  if (idx >= 0) branches.splice(idx, 1);
+  return { ok: true };
+}
 
-export const deleteBranch = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: { id: string }) => input)
-  .handler(async ({ data, context }) => {
-    const db = context.supabase as never as { from: (t: string) => any };
-    const { error } = await db.from("restaurant_branches").delete().eq("id", data.id);
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
+export async function saveZone(input: Partial<ZoneRow> & { restaurant_id: string; name: string }) {
+  await delay(60);
+  if (input.id) {
+    const z = zones.find((x) => x.id === input.id);
+    if (!z) throw new Error("Zone not found");
+    Object.assign(z, input);
+  } else {
+    zones.push({
+      id: uid("zn"),
+      restaurant_id: input.restaurant_id,
+      branch_id: input.branch_id ?? null,
+      name: input.name,
+      radius_km: input.radius_km ?? 5,
+      base_fee: input.base_fee ?? 20,
+      min_order: input.min_order ?? 100,
+      surcharge: input.surcharge ?? 0,
+      postal_codes: input.postal_codes ?? [],
+      is_active: input.is_active ?? true,
+    });
+  }
+  return { ok: true };
+}
 
-export const saveZone = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: Partial<ZoneRow> & { restaurant_id: string; name: string }) => input)
-  .handler(async ({ data, context }) => {
-    const db = context.supabase as never as { from: (t: string) => any };
-    const { id, ...rest } = data;
-    const query = id
-      ? db.from("delivery_zones").update({ ...rest, updated_by: context.userId }).eq("id", id)
-      : db.from("delivery_zones").insert({ ...rest, created_by: context.userId });
-    const { error } = await query;
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
-
-export const deleteZone = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: { id: string }) => input)
-  .handler(async ({ data, context }) => {
-    const db = context.supabase as never as { from: (t: string) => any };
-    const { error } = await db.from("delivery_zones").delete().eq("id", data.id);
-    if (error) throw new Error(error.message);
-    return { ok: true };
-  });
+export async function deleteZone(input: { id: string }) {
+  await delay(40);
+  const idx = zones.findIndex((z) => z.id === input.id);
+  if (idx >= 0) zones.splice(idx, 1);
+  return { ok: true };
+}

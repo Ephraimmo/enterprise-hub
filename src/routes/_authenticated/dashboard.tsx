@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
+import { useServerFn } from "@/lib/use-demo-fn";
 import {
   Area,
   AreaChart,
@@ -33,7 +33,6 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useStaffSession } from "@/hooks/use-staff-session";
 import { getDashboard, type DashboardPayload } from "@/lib/dashboard.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -109,7 +108,6 @@ function Metric({
 }
 
 function DashboardPage() {
-  const { session } = useStaffSession();
   const fetchDashboard = useServerFn(getDashboard);
   const { data, isLoading, isError, refetch } = useQuery<DashboardPayload>({
     queryKey: ["dashboard"],
@@ -129,7 +127,6 @@ function DashboardPage() {
 
   return (
     <AppShell
-      session={session}
       breadcrumb={["Operations", "Dashboard"]}
       title="Live operations"
       description="Network-wide view of orders, revenue, restaurants and fleet, refreshed every 20 seconds."

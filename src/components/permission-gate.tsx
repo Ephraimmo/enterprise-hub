@@ -1,14 +1,16 @@
-import type { ReactNode } from "react";
+import { type ReactNode } from "react";
 import { ShieldAlert } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useStaffSession } from "@/hooks/use-staff-session";
 
 /**
- * Wraps a management screen with the shell, a loading state and a
- * permission check. Renders an access-denied panel when the signed-in
+ * Wraps a management screen with the shell, a loading state, an auth redirect
+ * and a permission check. Renders an access-denied panel when the signed-in
  * staff member lacks any of the required permission codes.
+ *
+ * AppShell itself fetches the session, shows loading skeletons and handles
+ * sign-out — we only need the session here to decide access control.
  */
 export function PermissionGate({
   required,
@@ -23,34 +25,23 @@ export function PermissionGate({
   title: string;
   description?: string;
   actions?: ReactNode;
-  children: (session: ReturnType<typeof useStaffSession>) => ReactNode;
+  children: ReactNode | ((staff: ReturnType<typeof useStaffSession>) => ReactNode);
 }) {
   const staff = useStaffSession();
-
-  if (staff.isLoading) {
-    return (
-      <AppShell breadcrumb={breadcrumb} title={title} {...(description ? { description } : {})}>
-        <div className="space-y-3">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-64 w-full" />
-        </div>
-      </AppShell>
-    );
-  }
-
-  const allowed = required.length === 0 || staff.hasAnyPermission(required);
+  const session = staff.session;
+  const allowed =
+    !session || required.length === 0 || staff.hasAnyPermission(required);
 
   return (
     <AppShell
-      session={staff.session}
       breadcrumb={breadcrumb}
       title={title}
       {...(description ? { description } : {})}
-      {...(allowed && actions ? { actions } : {})}
+      {...(allowed && session && actions ? { actions } : {})}
     >
-      {allowed ? (
-        children(staff)
-      ) : (
+      {session && allowed ? (
+        typeof children === "function" ? children(staff) : children
+      ) : session ? (
         <Card className="border-destructive/30">
           <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
             <ShieldAlert className="size-8 text-destructive" />
@@ -62,7 +53,7 @@ export function PermissionGate({
             </div>
           </CardContent>
         </Card>
-      )}
+      ) : null}
     </AppShell>
   );
 }
