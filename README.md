@@ -1,6 +1,62 @@
-# Enterprise Hub
+# ForkFleet Admin & Operations Console
 
-MASTER PROMPT – Enterprise Food Ordering & Delivery Management System (Management Portal Only)
+A complete, enterprise-grade Operations and Restaurant Management Portal for the **ForkFleet** food ordering and delivery ecosystem (integrated with the Customer App and Driver App).
+
+---
+
+## ⚡ Quick Start (Run Locally)
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Run unit tests
+npm test
+
+# 3. Start development server
+npm run dev
+
+# 4. Build for production
+npm run build
+```
+
+---
+
+## 🚀 Key Modules & Capabilities
+
+- **Driver Fleet Management (`/drivers`)**:
+  - Live real-time driver list subscribed to Firebase Realtime Database (`/drivers`).
+  - Driver onboarding & approval machine: `pending` → `offline`/`approved`, `rejected`, `suspended`, `reactivated`.
+  - Restaurant & branch assignment: Assign approved drivers to specific restaurant branches or all branches (expands to concrete tuples in `/driverAssignments`).
+  - Strict eligibility filtering (only approved, active drivers assigned to the exact restaurant + branch receive orders).
+- **Operations & Order Dispatch (`/dispatch`, `/orders`, `/kitchen`)**:
+  - Dispatch board with delivery lanes (`ready` → `assigned` → `picked_up` → `on_the_way` → `delivered`) and counter pickup workflow.
+  - Live Kitchen preparation queue and status tracking.
+  - Live Delivery GPS and Fleet Map (`/live-map`).
+- **Catalogue & Restaurant Management (`/restaurants`, `/menus`, `/inventory`)**:
+  - Multi-branch restaurant management, business hours, and operational radius.
+  - Real-time menu builder with categories, variants, add-ons, pricing, and rewards points.
+  - Stock levels, low stock alerts, and purchase orders.
+- **Commerce & Financials (`/customers`, `/payments`, `/promotions`, `/reports`)**:
+  - Customer profiles, loyalty tiers, wallet balances, and spending analytics.
+  - Payment gateway management, driver/restaurant payouts, and settlement reporting.
+  - Promotions engine: Combo deals (e.g. 3-for-2 multi-buy), promo codes, and points rewards.
+  - PDF/Excel exportable sales, tax, and inventory reports.
+- **Platform Governance (`/access`, `/notifications`, `/support`, `/audit-logs`, `/settings`)**:
+  - Role-Based Access Control (RBAC) with fine-grained permissions.
+  - System-wide notifications and broadcasts.
+  - Real-time customer/driver support tickets synced to Firebase.
+  - Full audit logging on every administrative mutation.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Frontend**: React 19, TypeScript, Tailwind CSS v4, Radix UI, TanStack Router & Start, Lucide Icons, Recharts.
+- **Backend & Database**: Firebase Realtime Database (`e-comm-bd997`) + Supabase PostgreSQL.
+- **Testing**: Vitest for driver assignment algorithms and dispatch rules.
+
+---
 
 Project Overview
 
